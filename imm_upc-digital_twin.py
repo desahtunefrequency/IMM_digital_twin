@@ -2,100 +2,13 @@ import time
 import random
 from opcua import Server, ua
 import sqlite3
+from machines.imm import IMM
+from machines.iml import IML
+from machines.chil import CHIL
+from machines.m_con import M_CON
+from machines.c_disp import C_DISP
+from machines.robo import ROBO
 
-
-class IMM:
-    def __init__(self):
-        self.injection_time = 0.0
-        self.cooling_time = 0.0
-        self.demolding_time = 0.0
-        self.cycle_count = 0
-        self.machine_status = "Idle"
-        self.power_consumption = 0.0
-
-    def simulate(self):
-        self.injection_time = random.uniform(0.38, 0.42)
-        self.cooling_time = random.uniform(1.47, 1.53)
-        self.demolding_time = random.uniform(4.95, 6.05)
-        self.cycle_count += 1
-        self.machine_status = "Running"
-        self.power_consumption = random.uniform(10.0, 20.0)
-
-    def reset(self):
-        self.injection_time = 0.0
-        self.cooling_time = 0.0
-        self.demolding_time = 0.0
-        self.machine_status = "Idle"
-        self.power_consumption = 0.0
-
-
-class IML:
-    def __init__(self):
-        self.labeling_state = False
-        self.robot_cycle_time = 0.0
-        self.label_magazine_state = 100.0
-        self.energy_consumption = 0.0
-
-    def simulate(self):
-        self.labeling_state = random.choice([True, False])
-        self.robot_cycle_time = random.uniform(2.0, 5.0)
-        self.label_magazine_state = max(
-            0.0, self.label_magazine_state - random.uniform(0.5, 1.5)
-        )
-        self.energy_consumption = random.uniform(1.0, 5.0)
-
-
-class CHIL:
-    def __init__(self):
-        self.delivery_temp_stationary = 0.0
-        self.return_temp_stationary = 0.0
-        self.pressure_stationary = 0.0
-        self.delivery_temp_moving = 0.0
-        self.return_temp_moving = 0.0
-        self.pressure_moving = 0.0
-        self.inlet_temp = 0.0
-        self.outlet_temp = 0.0
-        self.water_pressure = 0.0
-
-    def simulate(self):
-        self.delivery_temp_stationary = random.uniform(18.0, 22.0)
-        self.return_temp_stationary = random.uniform(25.0, 30.0)
-        self.pressure_stationary = random.uniform(1.0, 2.0)
-        self.delivery_temp_moving = random.uniform(18.0, 22.0)
-        self.return_temp_moving = random.uniform(25.0, 30.0)
-        self.pressure_moving = random.uniform(1.0, 2.0)
-        self.inlet_temp = random.uniform(15.0, 20.0)
-        self.outlet_temp = random.uniform(25.0, 30.0)
-        self.water_pressure = random.uniform(1.0, 3.0)
-
-
-class C_DISP:
-    def __init__(self):
-        self.cycle_time = 0.0
-
-    def simulate(self):
-        self.cycle_time = random.uniform(1.2, 1.4)
-
-
-class M_CON:
-    def __init__(self):
-        self.working_time = 0.0
-
-    def simulate(self):
-        self.working_time = random.uniform(1.0, 2.0)
-
-
-class ROBO:
-    def __init__(self):
-        self.cycle_time = 0.0
-
-    def simulate(self):
-        self.cycle_time = random.uniform(3.0, 6.0)
-
-
-
-
-# ... (Equipment data models remain the same)
 
 # Set up the OPC UA server
 server = Server()
@@ -119,7 +32,7 @@ for row in equipment_data:
     equipment_type = row[4]
 
     device_name = f"{group}_{equipment_type}_{equipment_id}"
-    device_name_2 = f"AAA{group}_BBB{equipment_type}_CCC{equipment_id}"
+    device_name_2 = f"{group}_{equipment_type}_{equipment_id}"
     print(device_name_2)
 
     if equipment_type == "IMM":
