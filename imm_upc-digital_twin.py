@@ -4,6 +4,7 @@ import sqlite3
 from machines.equipment import Equipment
 from simulation.opc_ua_nodes import add_opc_ua_nodes
 from simulation.update_nodes import update_nodes
+import threading
 
 
 # Set up the OPC UA server
@@ -19,7 +20,7 @@ cursor = connection.cursor()
 cursor.execute("SELECT DISTINCT equipment_id FROM simulation_settings")
 equipment_ids = [row[0] for row in cursor.fetchall()]
 
-print(equipment_ids)
+# print(equipment_ids)
 
 
 # Create equipment objects and add them to the OPC UA address space
@@ -35,7 +36,6 @@ for equipment_id in equipment_ids:
 
     group, equipment_type = equipment_data[1], equipment_data[4]
     device_name = f"{group}_{equipment_type}_{equipment_id}"
-    print(device_name)
 
     equipment = Equipment(equipment_id, server, group, equipment_type)
 
@@ -45,16 +45,19 @@ for equipment_id in equipment_ids:
     add_opc_ua_nodes(server, equipment_node, equipment_id, device_name)
     equipment_objects[device_name] = equipment
 
-# Start the OPC UA server
 server.start()
 
 try:
-    while True:
-        # Simulate the behavior of each equipment
-        for device_name, equipment in equipment_objects.items():
-            equipment.simulate()
+    # Create threads for each equipment simulation
+    simulation_threads = []
+    for device_name, equipment in equipment_objects.items():
+        simulation_thread = threading.Thread(target=equipment.simulate)
+        simulation_thread.start()
+        simulation_threads.append(simulation_thread)
 
-        time.sleep(100.0)  # Adjust the interval as needed
+    # Wait for all simulation threads to complete
+    for thread in simulation_threads:
+        thread.join()
 
 except KeyboardInterrupt:
     # Stop the OPC UA server when the simulation is interrupted

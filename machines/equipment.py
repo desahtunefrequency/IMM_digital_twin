@@ -18,7 +18,7 @@ class Equipment:
         conn = sqlite3.connect("test.db")
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT setting_id, parameter_name, value, deviation_type, deviation_value, target_parameter, formula FROM simulation_settings WHERE equipment_id=?",
+            "SELECT setting_id, parameter_name, value, deviation_type, deviation_value, target_parameter, formula, count_cycle FROM simulation_settings WHERE equipment_id=?",
             (self.equipment_id,),
         )
         settings_data = cursor.fetchall()
@@ -35,6 +35,7 @@ class Equipment:
                 "deviation_value": float(row[4]),
                 "target_parameter": target_parameter,
                 "formula": row[6],
+                "count_cycle": row[7],
             }
             if target_parameter and target_parameter not in parameters:
                 parameters[target_parameter] = {
@@ -44,11 +45,8 @@ class Equipment:
                     "deviation_value": None,
                     "target_parameter": None,
                     "formula": None,
+                    "count_cycle": None,
                 }
-
-            print("equipment.py, parameters: ", parameters)
-            print("equipment.py, target_parameter: ", target_parameter)
-            print("equipment.py, parameters_name: ", parameter_name)
 
         return parameters
 
@@ -78,41 +76,53 @@ class Equipment:
             # Reload the simulation settings from the database
             self.parameters = self._load_simulation_settings()
 
+            print(
+                f"Simulating device: {self.group}_{self.equipment_type}_{self.equipment_id}"
+            )
+
             for parameter_name, parameter_data in self.parameters.items():
                 target_parameter = parameter_data["target_parameter"]
                 formula = parameter_data["formula"]
-                print("equipment.py, target_parameter: ", target_parameter)
-                print("equipment.py, formula: ", formula)
-                print("equipment.py, self.parameters: ", self.parameters)
+                count_cycle = parameter_data["count_cycle"]
 
-                # Calculate the parameter value with deviations
-                value = self._get_parameter_value(parameter_name)
-                self.parameters[parameter_name]["value"] = value
+                print(f"Processing parameter: {parameter_name}")
 
-                if target_parameter and formula:
-                    # Evaluate the formula using the current parameter values
-                    formula = formula.replace('"""', '"')
-                    for param_name in self.parameters:
-                        if param_name in formula:
-                            param_value = self.parameters[param_name]["value"]
-                            if param_value is None:
-                                formula = None
-                                break
-                            formula = formula.replace(param_name, str(param_value))
-                    if formula:
-                        try:
-                            calculated_value = eval(formula)
-                            self.parameters[target_parameter][
-                                "value"
-                            ] = calculated_value
-                        except (KeyError, TypeError, NameError, ZeroDivisionError):
-                            pass  # Skip updating the target parameter if an error occurs
+                if count_cycle == 1:
+                    # Calculate the parameter value with deviations
+                    value = self._get_parameter_value(parameter_name)
+                    self.parameters[parameter_name]["value"] = value
+
+                    if target_parameter and formula:
+                        # Evaluate the formula using the current parameter values
+                        formula = formula.replace('"""', '"')
+                        for param_name in self.parameters:
+                            if param_name in formula:
+                                param_value = self.parameters[param_name]["value"]
+                                if param_value is None:
+                                    formula = None
+                                    break
+                                formula = formula.replace(param_name, str(param_value))
+                        if formula:
+                            try:
+                                calculated_value = eval(formula)
+                                self.parameters[target_parameter][
+                                    "value"
+                                ] = calculated_value
+                            except (KeyError, TypeError, NameError, ZeroDivisionError):
+                                pass  # Skip updating the target parameter if an error occurs
 
             # Update the OPC UA nodes with the new parameter values
             update_nodes(self.server, self)
 
             self.cycle_count += 1
             self.status = "Running"
+
+            # Print the simulated values for each parameter
+            print(
+                f"Simulated values for {self.group}_{self.equipment_type}_{self.equipment_id}:"
+            )
+            for parameter_name, parameter_data in self.parameters.items():
+                print(f"{parameter_name}: {parameter_data['value']}")
 
             # Wait for a specific interval before the next simulation cycle
             time.sleep(5)  # Adjust the interval as needed

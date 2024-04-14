@@ -15,11 +15,6 @@ def update_nodes(server, equipment):
         try:
             node = server.get_node(node_id)
             if node:
-                if isinstance(value, str):
-                    try:
-                        value = eval(value)
-                    except (NameError, SyntaxError):
-                        continue  # Skip updating if the value cannot be evaluated
                 node.set_value(value)
         except ua.UaStatusCodeError as e:
             print(f"Error updating node {node_id}: {e}")

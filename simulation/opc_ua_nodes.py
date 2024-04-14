@@ -5,6 +5,9 @@ import sqlite3
 def add_opc_ua_nodes(server, equipment_node, equipment_id, device_name):
     conn = sqlite3.connect("test.db")
     cursor = conn.cursor()
+    print(
+        f"opc.py, equipment_id: {equipment_id}, device_name: {device_name}: equipmnet node: {equipment_node}"
+    )
 
     # Fetch parameter names and values from the simulation_settings table for the specific equipment
     cursor.execute(
@@ -12,7 +15,7 @@ def add_opc_ua_nodes(server, equipment_node, equipment_id, device_name):
         (equipment_id,),
     )
     parameter_data = cursor.fetchall()
-    print("opc.py, parameters_data", parameter_data)
+    print(f"opc.py, parameters_data for {device_name}: {parameter_data}")
     conn.close()
 
     # Create OPC UA nodes dynamically for each parameter
