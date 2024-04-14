@@ -8,17 +8,14 @@ from machines.robo import ROBO
 
 
 def create_equipment(equipment_type, device_name):
+
+    device_name_parts = device_name.split("_")
+
+    equipment_id = device_name_parts[
+        -1
+    ]  # Fetching the last element which should be equipment_id
+    print(equipment_id)
     if equipment_type == "IMM":
-        return IMM()
-    elif equipment_type == "IML":
-        return IML()
-    elif equipment_type == "CHIL":
-        return CHIL()
-    elif equipment_type == "M_CON":
-        return M_CON()
-    elif equipment_type == "C_DISP":
-        return C_DISP()
-    elif equipment_type == "ROBO":
-        return ROBO()
+        return IMM(int(equipment_id))
     else:
         return None
