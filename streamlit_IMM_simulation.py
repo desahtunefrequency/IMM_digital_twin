@@ -1,70 +1,76 @@
 import streamlit as st
-import sqlite3
 from opcua import Client
+import sqlite3
 
-# Database connection
+# OPC UA Server URL
+url = "opc.tcp://localhost:4840"
+
+# Connect to the SQLite database
 conn = sqlite3.connect("test.db")
 cursor = conn.cursor()
 
-# OPC UA client
-client = Client("opc.tcp://localhost:4840")
-client.connect()
-
-# Function to fetch equipment data from database
-def get_equipment_data(equipment_id):
-    cursor.execute("SELECT * FROM main.Equipment WHERE SAP=?", (equipment_id,))
-    return cursor.fetchone()
-
-def get_unique_ids():
-    cursor.execute("SELECT distinct SAP FROM main.Equipment")
-    unique_ids = [row[0] for row in cursor.fetchall()]
-    return unique_ids
-# Function to add new equipment to database
-def add_equipment(equipment_type, group):
-    cursor.execute("INSERT INTO main.Equipment (type, group_delete) VALUES (?, ?)", (equipment_type, group))
-    conn.commit()
-    st.success("Equipment added successfully!")
-
-# Sidebar for equipment selection and addition
-st.sidebar.title("Equipment Control Panel")
-equipment_id = st.sidebar.selectbox("Equipment ID", options=get_unique_ids())
-equipment_data = get_equipment_data(equipment_id)
-
-if equipment_data:
-    equipment_type = equipment_data[4]
-    group = equipment_data[1]
-    
-    device_name = f"{group}_{equipment_type}_{equipment_id}"
-    
-    st.sidebar.write(f"**Type:** {equipment_type}")
-    st.sidebar.write(f"**Group:** {group}")
-
-    # Display equipment properties based on type
-    if equipment_type == "IMM":
-        injection_time = client.get_node(f"ns=2;s=InjectionTime_{device_name}").get_value()
-        cooling_time = client.get_node(f"ns=2;s=CoolingTime_{device_name}").get_value()
-        # ... (Add other IMM properties)
-    elif equipment_type == "IML":
-        labeling_state = client.get_node(f"ns=2;s=LabelingState_{device_name}").get_value()
-        # ... (Add other IML properties)
-    # ... (Add other equipment types)
-
-    # Display equipment properties in main area
-    st.title(f"Equipment: {device_name}")
-    st.write(f"**Type:** {equipment_type}")
-    st.write(f"**Group:** {group}")
-    # ... (Display properties based on equipment type)
-
-else:
-    st.sidebar.warning("Equipment not found!")
-
-# Add new equipment form
-with st.sidebar.expander("Add New Equipment"):
-    equipment_type = st.selectbox("Type", ["IMM", "IML", "CHIL", "C_DISP", "M_CON", "ROBO"])
-    group = st.text_input("Group")
-    if st.button("Add Equipment"):
-        add_equipment(equipment_type, group)
-
-# Disconnect from OPC UA server and database
-client.disconnect()
+# Get list of systems and equipment types from the database
+cursor.execute("SELECT system_name FROM system")
+systems = [row[0] for row in cursor.fetchall()]
+cursor.execute("SELECT DISTINCT equipment_type FROM equipment")
+equipment_types = [row[0] for row in cursor.fetchall()]
 conn.close()
+
+# Connect to the OPC UA server
+client = Client(url)
+try:
+    client.connect()
+
+    # Streamlit App Title
+    st.title("Injection Molding Simulation UI")
+
+    # Sidebar for system and equipment type selection
+    selected_system = st.sidebar.selectbox("Select System", options=systems)
+    selected_type = st.sidebar.selectbox(
+        "Select Equipment Type", options=equipment_types
+    )
+
+    # Get the root node and retrieve all nodes
+    root_node = client.get_root_node()
+
+    def browse_nodes(node):
+        node_list = []
+        for child in node.get_children():
+            node_list.append(child)
+            node_list.extend(browse_nodes(child))  # Recursively browse children
+        return node_list
+
+    all_nodes = browse_nodes(root_node)
+
+    # Filter equipment nodes based on selected system and equipment type
+    filtered_nodes = []
+    for node in all_nodes:
+        node_id_str = node.nodeid.to_string()
+        browse_name = node.get_browse_name().Name
+        parts = browse_name.split("_")  # Split the BrowseName
+        if (
+            node_id_str.startswith("s=ns=2;")
+            and parts[0] == selected_system  # Check system
+            and len(parts) >= 3  # Ensure enough parts for type
+            and parts[1] == selected_type  # Check equipment type
+        ):
+            filtered_nodes.append(node)
+
+    # Display data for the filtered equipment
+    if filtered_nodes:
+        for node in filtered_nodes:
+            st.subheader(f"Equipment: {node.get_browse_name().Name}")
+            for variable in node.get_variables():
+                variable_name = variable.get_browse_name().Name
+                variable_value = variable.get_value()
+                st.write(f"{variable_name}: {variable_value}")
+    else:
+        st.info(
+            f"No equipment found for system: {selected_system} and type: {selected_type}"
+        )
+
+except Exception as e:
+    st.error(f"Error connecting to OPC UA server: {e}")
+
+finally:
+    client.disconnect()
