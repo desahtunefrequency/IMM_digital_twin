@@ -35,7 +35,8 @@ for equipment_id in equipment_ids:
         continue
 
     group, equipment_type = equipment_data[1], equipment_data[4]
-    device_name = f"{group}_{equipment_type}_{equipment_id}"
+    # device_name = f"{group}_{equipment_type}_{equipment_id}"
+    device_name = f"{group}_{equipment_type}"
 
     equipment = Equipment(equipment_id, server, group, equipment_type)
 

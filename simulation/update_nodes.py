@@ -6,9 +6,10 @@ def update_nodes(server, equipment):
         value = parameter_data["value"]
         if value is None:
             continue  # Skip updating if the value is None
-        device_name = (
-            f"{equipment.group}_{equipment.equipment_type}_{equipment.equipment_id}"
-        )
+        # device_name = (
+        #     f"{equipment.group}_{equipment.equipment_type}_{equipment.equipment_id}"
+        # )
+        device_name = f"{equipment.group}_{equipment.equipment_type}"
         node_id = ua.NodeId(f"ns=2;s={parameter_name}_{device_name}")
         print("update.py, node_id", node_id)
         print("update.py, value", value)

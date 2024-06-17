@@ -68,6 +68,7 @@ class Equipment:
             deviation = deviation_value * random.uniform(-1, 1)
 
         simulated_value = nominal_value + deviation
+        simulated_value = round(simulated_value, 2)
         print(f"Simulated value for {parameter_name}: {simulated_value}")
         return simulated_value
 
@@ -125,7 +126,7 @@ class Equipment:
                 print(f"{parameter_name}: {parameter_data['value']}")
 
             # Wait for a specific interval before the next simulation cycle
-            time.sleep(5)  # Adjust the interval as needed
+            time.sleep(15)  # Adjust the interval as needed
 
     def update_setting(self, parameter_name, new_value):
         print("equipment.py, parameter_name: ", parameter_name)

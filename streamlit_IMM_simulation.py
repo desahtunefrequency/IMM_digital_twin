@@ -33,25 +33,30 @@ try:
     # Get the root node and retrieve all nodes
     root_node = client.get_root_node()
 
-    def browse_nodes(node):
+    def browse_nodes(node, filter_prefix="s=ns=2;"):
         node_list = []
         for child in node.get_children():
-            node_list.append(child)
-            node_list.extend(browse_nodes(child))  # Recursively browse children
+            node_id_str = child.nodeid.to_string()
+            if node_id_str.startswith(filter_prefix):
+                node_list.append(child)
+            node_list.extend(
+                browse_nodes(child, filter_prefix)
+            )  # Recursively browse children
         return node_list
 
-    all_nodes = browse_nodes(root_node)
+    # Example usage with filtering
+    all_nodes = browse_nodes(root_node, filter_prefix="s=ns=2;")
+    print("all_nodes", all_nodes)
 
     # Filter equipment nodes based on selected system and equipment type
     filtered_nodes = []
     for node in all_nodes:
-        node_id_str = node.nodeid.to_string()
         browse_name = node.get_browse_name().Name
-        parts = browse_name.split("_")  # Split the BrowseName
+        parts = browse_name.split("_")
+
         if (
-            node_id_str.startswith("s=ns=2;")
-            and parts[0] == selected_system  # Check system
-            and len(parts) >= 3  # Ensure enough parts for type
+            parts[0] == selected_system  # Check system
+            and len(parts) >= 2  # Ensure enough parts for type
             and parts[1] == selected_type  # Check equipment type
         ):
             filtered_nodes.append(node)
